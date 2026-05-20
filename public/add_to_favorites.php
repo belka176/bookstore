@@ -1,13 +1,7 @@
 <?php
 session_start();
 
-$conn = mysqli_connect("localhost", "root", "", "bookstore");
-
-if (!$conn) {
-    die("Ошибка подключения к базе данных");
-}
-
-mysqli_set_charset($conn, "utf8");
+require_once 'config/db.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -17,17 +11,31 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 $book_id = $_POST['book_id'];
 
-$check = mysqli_query($conn, "
-    SELECT * FROM favorites 
-    WHERE user_id='$user_id' AND book_id='$book_id'
+$stmt = $pdo->prepare("
+    SELECT id
+    FROM favorites
+    WHERE user_id = :user_id
+    AND book_id = :book_id
 ");
 
-if (mysqli_num_rows($check) == 0) {
+$stmt->execute([
+    ':user_id' => $user_id,
+    ':book_id' => $book_id
+]);
 
-    mysqli_query($conn, "
-        INSERT INTO favorites(user_id, book_id)
-        VALUES('$user_id', '$book_id')
+$favorite = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$favorite) {
+
+    $stmt = $pdo->prepare("
+        INSERT INTO favorites (user_id, book_id)
+        VALUES (:user_id, :book_id)
     ");
+
+    $stmt->execute([
+        ':user_id' => $user_id,
+        ':book_id' => $book_id
+    ]);
 }
 
 $anchor = $_POST['redirect_anchor'] ?? '';

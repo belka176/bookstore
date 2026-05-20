@@ -21,5 +21,5 @@ try {
 
 } catch(PDOException $e) {
 
-    die("Ошибка подключения");
+    die("Ошибка подключения" . $e->getMessage());
 }

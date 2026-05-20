@@ -1,13 +1,7 @@
 <?php
 session_start();
 
-$conn = mysqli_connect("localhost", "root", "", "bookstore");
-
-if (!$conn) {
-    die("Ошибка подключения к БД: " . mysqli_connect_error());
-}
-
-mysqli_set_charset($conn, "utf8");
+require_once 'config/db.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -18,11 +12,18 @@ $user_id = $_SESSION['user_id'];
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
-    $name = mysqli_real_escape_string($conn, $_POST['name']);
-    $email = mysqli_real_escape_string($conn, $_POST['email']);
-    $phone = mysqli_real_escape_string($conn, $_POST['phone']);
+    $name = $_POST['name'] ?? '';
+    $email = $_POST['email'] ?? '';
+    $phone = $_POST['phone'] ?? '';
 
-    $update_avatar = "";
+    $avatar_sql = "";
+
+    $params = [
+        ':name' => $name,
+        ':email' => $email,
+        ':phone' => $phone,
+        ':user_id' => $user_id
+    ];
 
     if (!empty($_FILES['avatar']['name'])) {
 
@@ -37,36 +38,51 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $db_path = "images/avatars/" . $avatar_name;
 
         if (move_uploaded_file($_FILES['avatar']['tmp_name'], $full_path)) {
-            $update_avatar = ", avatar='$db_path'";
+            $avatar_sql = ", avatar = :avatar";
+            $params[':avatar'] = $db_path;
         }
     }
 
-    $update = "
-        UPDATE users 
-        SET 
-            name='$name',
-            email='$email',
-            phone='$phone'
-            $update_avatar
-        WHERE id='$user_id'
-    ";
+    $stmt = $pdo->prepare("
+        UPDATE users
+        SET
+            name = :name,
+            email = :email,
+            phone = :phone
+            $avatar_sql
+        WHERE id = :user_id
+    ");
 
-    mysqli_query($conn, $update);
+    $stmt->execute($params);
 
     header("Location: profile.php");
     exit();
 }
 
-$user_query = "SELECT * FROM users WHERE id='$user_id'";
-$user_result = mysqli_query($conn, $user_query);
-$user = mysqli_fetch_assoc($user_result);
+$stmt = $pdo->prepare("
+    SELECT *
+    FROM users
+    WHERE id = :user_id
+");
 
-$orders_query = mysqli_query($conn, "
+$stmt->execute([
+    ':user_id' => $user_id
+]);
+
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+$stmt = $pdo->prepare("
     SELECT *
     FROM orders
-    WHERE user_id = '$user_id'
+    WHERE user_id = :user_id
     ORDER BY order_date ASC
 ");
+
+$stmt->execute([
+    ':user_id' => $user_id
+]);
+
+$orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -301,7 +317,10 @@ $orders_query = mysqli_query($conn, "
 
                 <?php if (!empty($user['avatar'])): ?>
 
-                    <img src="<?php echo $user['avatar'] . '?v=' . time(); ?>" alt="Аватар">
+                    <img
+                        src="<?php echo htmlspecialchars($user['avatar']) . '?v=' . time(); ?>"
+                        alt="Аватар"
+                    >
 
                 <?php else: ?>
 
@@ -326,17 +345,29 @@ $orders_query = mysqli_query($conn, "
 
                 <div class="profile-form-group">
                     <label>Имя</label>
-                    <input type="text" name="name" value="<?php echo $user['name'] ?? ''; ?>">
+                    <input
+                        type="text"
+                        name="name"
+                        value="<?php echo htmlspecialchars($user['name'] ?? ''); ?>"
+                    >
                 </div>
 
                 <div class="profile-form-group">
                     <label>Email</label>
-                    <input type="email" name="email" value="<?php echo $user['email'] ?? ''; ?>">
+                    <input
+                        type="email"
+                        name="email"
+                        value="<?php echo htmlspecialchars($user['email'] ?? ''); ?>"
+                    >
                 </div>
 
                 <div class="profile-form-group">
                     <label>Телефон</label>
-                    <input type="text" name="phone" value="<?php echo $user['phone'] ?? ''; ?>">
+                    <input
+                        type="text"
+                        name="phone"
+                        value="<?php echo htmlspecialchars($user['phone'] ?? ''); ?>"
+                    >
                 </div>
 
                 <div class="profile-save">
@@ -353,12 +384,12 @@ $orders_query = mysqli_query($conn, "
 
         <h2>История покупок</h2>
 
-        <?php if ($orders_query && mysqli_num_rows($orders_query) > 0): ?>
+        <?php if (count($orders) > 0): ?>
 
             <?php
             $order_number = 1;
 
-            while($order = mysqli_fetch_assoc($orders_query)):
+            foreach ($orders as $order):
             ?>
 
                 <div class="order-item">
@@ -372,43 +403,48 @@ $orders_query = mysqli_query($conn, "
                             $date = new DateTime($order['order_date']);
                             $date->setTimezone(new DateTimeZone('Asia/Irkutsk'));
 
-                            echo $date->format('Y-m-d H:i:s');
+                            echo htmlspecialchars($date->format('Y-m-d H:i:s'));
                         ?>
                     </p>
 
                     <p>
                         <strong>Сумма:</strong>
-                        <?php echo $order['total_price']; ?> ₽
+                        <?php echo htmlspecialchars($order['total_price']); ?> ₽
                     </p>
 
                     <p>
                         <strong>Статус:</strong>
-                        <?php echo $order['status']; ?>
+                        <?php echo htmlspecialchars($order['status']); ?>
                     </p>
 
                     <?php
-                    $order_id = $order['id'];
-
-                    $books_query = mysqli_query($conn, "
+                    $stmt = $pdo->prepare("
                         SELECT *
                         FROM order_items
-                        WHERE order_id = '$order_id'
+                        WHERE order_id = :order_id
                     ");
+
+                    $stmt->execute([
+                        ':order_id' => $order['id']
+                    ]);
+
+                    $books = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     ?>
 
                     <div class="order-books">
 
                         <strong>Книги в заказе:</strong>
 
-                        <?php if ($books_query && mysqli_num_rows($books_query) > 0): ?>
+                        <?php if (count($books) > 0): ?>
 
-                            <?php while($book = mysqli_fetch_assoc($books_query)): ?>
+                            <?php foreach ($books as $book): ?>
 
                                 <div class="order-book-row">
-                                    📚 <?php echo $book['title']; ?> — <?php echo $book['quantity']; ?> шт.
+                                    📚 <?php echo htmlspecialchars($book['title']); ?> —
+                                    <?php echo htmlspecialchars($book['quantity']); ?> шт.
                                 </div>
 
-                            <?php endwhile; ?>
+                            <?php endforeach; ?>
 
                         <?php else: ?>
 
@@ -420,7 +456,10 @@ $orders_query = mysqli_query($conn, "
 
                     </div>
 
-                    <a href="order_details.php?id=<?php echo $order['id']; ?>" class="order-details-btn">
+                    <a
+                        href="order_details.php?id=<?php echo htmlspecialchars($order['id']); ?>"
+                        class="order-details-btn"
+                    >
                         Подробнее
                     </a>
 
@@ -428,7 +467,7 @@ $orders_query = mysqli_query($conn, "
 
             <?php
             $order_number++;
-            endwhile;
+            endforeach;
             ?>
 
         <?php else: ?>

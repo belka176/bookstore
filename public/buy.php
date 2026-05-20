@@ -1,13 +1,7 @@
 <?php
 session_start();
 
-$conn = mysqli_connect("localhost", "root", "", "bookstore");
-
-if (!$conn) {
-    die("Ошибка подключения к базе данных: " . mysqli_connect_error());
-}
-
-mysqli_set_charset($conn, "utf8");
+require_once 'config/db.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -16,77 +10,109 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-$delivery_method = mysqli_real_escape_string($conn, $_POST['delivery_method'] ?? '');
-$address = mysqli_real_escape_string($conn, $_POST['address'] ?? '');
-$phone = mysqli_real_escape_string($conn, $_POST['phone'] ?? '');
-$comment = mysqli_real_escape_string($conn, $_POST['comment'] ?? '');
+$delivery_method = $_POST['delivery_method'] ?? '';
+$address = $_POST['address'] ?? '';
+$phone = $_POST['phone'] ?? '';
+$comment = $_POST['comment'] ?? '';
 
 if (isset($_POST['book_id'])) {
 
-    $book_id = intval($_POST['book_id']);
+    $book_id = (int) $_POST['book_id'];
 
-    $result = mysqli_query($conn, "
+    $stmt = $pdo->prepare("
         SELECT books.id, books.title, books.author, books.price, cart.quantity
         FROM cart
         JOIN books ON cart.book_id = books.id
-        WHERE cart.user_id = '$user_id'
-        AND cart.book_id = '$book_id'
+        WHERE cart.user_id = :user_id
+        AND cart.book_id = :book_id
     ");
+
+    $stmt->execute([
+        ':user_id' => $user_id,
+        ':book_id' => $book_id
+    ]);
 
 } else {
 
-    $result = mysqli_query($conn, "
+    $stmt = $pdo->prepare("
         SELECT books.id, books.title, books.author, books.price, cart.quantity
         FROM cart
         JOIN books ON cart.book_id = books.id
-        WHERE cart.user_id = '$user_id'
+        WHERE cart.user_id = :user_id
     ");
+
+    $stmt->execute([
+        ':user_id' => $user_id
+    ]);
 }
 
-if (!$result || mysqli_num_rows($result) == 0) {
+$items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+if (!$items) {
     header("Location: cart.php");
     exit();
 }
 
-$items = [];
 $total_price = 0;
 
-while ($item = mysqli_fetch_assoc($result)) {
-    $items[] = $item;
+foreach ($items as $item) {
     $total_price += $item['price'] * $item['quantity'];
 }
 
-mysqli_query($conn, "
-    INSERT INTO orders(user_id, total_price, status, order_date)
-    VALUES('$user_id', '$total_price', 'Оформлен', NOW())
+$stmt = $pdo->prepare("
+    INSERT INTO orders (user_id, total_price, status, order_date)
+    VALUES (:user_id, :total_price, 'Оформлен', NOW())
 ");
 
-$order_id = mysqli_insert_id($conn);
+$stmt->execute([
+    ':user_id' => $user_id,
+    ':total_price' => $total_price
+]);
+
+$order_id = $pdo->lastInsertId();
 
 foreach ($items as $item) {
-    $book_id = $item['id'];
-    $title = mysqli_real_escape_string($conn, $item['title']);
-    $author = mysqli_real_escape_string($conn, $item['author']);
-    $price = $item['price'];
-    $quantity = $item['quantity'];
 
-    mysqli_query($conn, "
-        INSERT INTO order_items(order_id, book_id, title, author, price, quantity)
-        VALUES('$order_id', '$book_id', '$title', '$author', '$price', '$quantity')
+    $stmt = $pdo->prepare("
+        INSERT INTO order_items (order_id, book_id, title, author, price, quantity)
+        VALUES (:order_id, :book_id, :title, :author, :price, :quantity)
     ");
+
+    $stmt->execute([
+        ':order_id' => $order_id,
+        ':book_id' => $item['id'],
+        ':title' => $item['title'],
+        ':author' => $item['author'],
+        ':price' => $item['price'],
+        ':quantity' => $item['quantity']
+    ]);
 }
 
 if (isset($_POST['book_id'])) {
-    mysqli_query($conn, "
+
+$book_id = (int) $_POST['book_id'];
+
+    $stmt = $pdo->prepare("
         DELETE FROM cart
-        WHERE user_id = '$user_id'
-        AND book_id = '$book_id'
+        WHERE user_id = :user_id
+        AND book_id = :book_id
     ");
+
+    $stmt->execute([
+        ':user_id' => $user_id,
+        ':book_id' => $book_id
+    ]);
+
 } else {
-    mysqli_query($conn, "
+
+    $stmt = $pdo->prepare("
         DELETE FROM cart
-        WHERE user_id = '$user_id'
+        WHERE user_id = :user_id
     ");
+
+    $stmt->execute([
+        ':user_id' => $user_id
+    ]);
 }
 
 header("Location: profile.php");

@@ -1,13 +1,7 @@
 <?php
 session_start();
 
-$conn = mysqli_connect("localhost", "root", "", "bookstore");
-
-if (!$conn) {
-    die("Ошибка подключения: " . mysqli_connect_error());
-}
-
-mysqli_set_charset($conn, "utf8");
+require_once 'config/db.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -15,27 +9,38 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id = $_SESSION['user_id'];
-$order_id = intval($_GET['id']);
+$order_id = (int) $_GET['id'];
 
-$order_query = mysqli_query($conn, "
+$stmt = $pdo->prepare("
     SELECT *
     FROM orders
-    WHERE id = '$order_id'
-    AND user_id = '$user_id'
+    WHERE id = :order_id
+    AND user_id = :user_id
 ");
 
-if (!$order_query || mysqli_num_rows($order_query) == 0) {
+$stmt->execute([
+    ':order_id' => $order_id,
+    ':user_id' => $user_id
+]);
+
+$order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$order) {
     header("Location: profile.php");
     exit();
 }
 
-$order = mysqli_fetch_assoc($order_query);
-
-$items_query = mysqli_query($conn, "
+$stmt = $pdo->prepare("
     SELECT *
     FROM order_items
-    WHERE order_id = '$order_id'
+    WHERE order_id = :order_id
 ");
+
+$stmt->execute([
+    ':order_id' => $order_id
+]);
+
+$items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -93,24 +98,24 @@ $items_query = mysqli_query($conn, "
 
     <div class="order-details-box">
 
-        <h2>Заказ №<?php echo $order['id']; ?></h2>
+        <h2>Заказ №<?php echo htmlspecialchars($order['id']); ?></h2>
 
-        <p><strong>Дата:</strong> <?php echo $order['order_date']; ?></p>
-        <p><strong>Сумма:</strong> <?php echo $order['total_price']; ?> ₽</p>
-        <p><strong>Статус:</strong> <?php echo $order['status']; ?></p>
+        <p><strong>Дата:</strong> <?php echo htmlspecialchars($order['order_date']); ?></p>
+        <p><strong>Сумма:</strong> <?php echo htmlspecialchars($order['total_price']); ?> ₽</p>
+        <p><strong>Статус:</strong> <?php echo htmlspecialchars($order['status']); ?></p>
 
         <h3>Книги в заказе</h3>
 
-        <?php while($item = mysqli_fetch_assoc($items_query)): ?>
+        <?php foreach ($items as $item): ?>
 
             <div class="order-book">
-                <h3><?php echo $item['title']; ?></h3>
-                <p><strong>Автор:</strong> <?php echo $item['author']; ?></p>
-                <p><strong>Цена:</strong> <?php echo $item['price']; ?> ₽</p>
-                <p><strong>Количество:</strong> <?php echo $item['quantity']; ?></p>
+                <h3><?php echo htmlspecialchars($item['title']); ?></h3>
+                <p><strong>Автор:</strong> <?php echo htmlspecialchars($item['author']); ?></p>
+                <p><strong>Цена:</strong> <?php echo htmlspecialchars($item['price']); ?> ₽</p>
+                <p><strong>Количество:</strong> <?php echo htmlspecialchars($item['quantity']); ?></p>
             </div>
 
-        <?php endwhile; ?>
+        <?php endforeach; ?>
 
         <a href="profile.php" class="back-btn">Назад в личный кабинет</a>
 

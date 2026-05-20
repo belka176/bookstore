@@ -1,24 +1,23 @@
 <?php
 session_start();
 
-$conn = mysqli_connect("localhost", "root", "", "bookstore");
-
-if (!$conn) {
-    die("Ошибка подключения: " . mysqli_connect_error());
-}
-
-mysqli_set_charset($conn, "utf8");
+require_once 'config/db.php';
 
 $error = "";
 
+$name = "";
+$username = "";
+$email = "";
+$phone = "";
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
-    $name = trim($_POST['name']);
-    $username = trim($_POST['username']);
-    $email = trim($_POST['email']);
-    $phone = trim($_POST['phone']);
-    $password = trim($_POST['password']);
-    $confirm_password = trim($_POST['confirm_password']);
+    $name = trim($_POST['name'] ?? '');
+    $username = trim($_POST['username'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+    $password = trim($_POST['password'] ?? '');
+    $confirm_password = trim($_POST['confirm_password'] ?? '');
 
     if (
         empty($name) ||
@@ -53,28 +52,35 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     } else {
 
-        $name = mysqli_real_escape_string($conn, $name);
-        $username = mysqli_real_escape_string($conn, $username);
-        $email = mysqli_real_escape_string($conn, $email);
-        $phone = mysqli_real_escape_string($conn, $phone);
-
-        $check_email = mysqli_query($conn, "
-            SELECT id 
-            FROM users 
-            WHERE email='$email'
+        $stmt = $pdo->prepare("
+            SELECT id
+            FROM users
+            WHERE email = :email
         ");
 
-        $check_username = mysqli_query($conn, "
-            SELECT id 
-            FROM users 
-            WHERE username='$username'
+        $stmt->execute([
+            ':email' => $email
+        ]);
+
+        $check_email = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $stmt = $pdo->prepare("
+            SELECT id
+            FROM users
+            WHERE username = :username
         ");
 
-        if (mysqli_num_rows($check_email) > 0) {
+        $stmt->execute([
+            ':username' => $username
+        ]);
+
+        $check_username = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($check_email) {
 
             $error = "Пользователь с таким Email уже существует.";
 
-        } elseif (mysqli_num_rows($check_username) > 0) {
+        } elseif ($check_username) {
 
             $error = "Такой логин уже занят.";
 
@@ -82,8 +88,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
 
-            $query = "
-                INSERT INTO users(
+            $stmt = $pdo->prepare("
+                INSERT INTO users (
                     username,
                     name,
                     email,
@@ -91,28 +97,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     password,
                     role
                 )
-                VALUES(
-                    '$username',
-                    '$name',
-                    '$email',
-                    '$phone',
-                    '$password_hash',
+                VALUES (
+                    :username,
+                    :name,
+                    :email,
+                    :phone,
+                    :password,
                     'user'
                 )
-            ";
+            ");
 
-            if (mysqli_query($conn, $query)) {
+            $stmt->execute([
+                ':username' => $username,
+                ':name' => $name,
+                ':email' => $email,
+                ':phone' => $phone,
+                ':password' => $password_hash
+            ]);
 
-                $_SESSION['success_register'] = "Вы успешно зарегистрировались!";
+            $_SESSION['success_register'] = "Вы успешно зарегистрировались!";
 
-                header("Location: login.php");
-                exit();
-
-            } else {
-
-                $error = "Ошибка регистрации: " . mysqli_error($conn);
-
-            }
+            header("Location: login.php");
+            exit();
         }
     }
 }
@@ -137,10 +143,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         Создайте аккаунт в Книжном мире
     </p>
 
-    <?php if(!empty($error)): ?>
+    <?php if (!empty($error)): ?>
 
         <div class="auth-error">
-            <?php echo $error; ?>
+            <?php echo htmlspecialchars($error); ?>
         </div>
 
     <?php endif; ?>
@@ -151,7 +157,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             type="text"
             name="name"
             placeholder="Ваше имя"
-            value="<?php echo htmlspecialchars($name ?? ''); ?>"
+            value="<?php echo htmlspecialchars($name); ?>"
             required
         >
 
@@ -159,7 +165,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             type="text"
             name="username"
             placeholder="Логин"
-            value="<?php echo htmlspecialchars($username ?? ''); ?>"
+            value="<?php echo htmlspecialchars($username); ?>"
             required
         >
 
@@ -167,7 +173,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             type="email"
             name="email"
             placeholder="Email"
-            value="<?php echo htmlspecialchars($email ?? ''); ?>"
+            value="<?php echo htmlspecialchars($email); ?>"
             required
         >
 
@@ -175,7 +181,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             type="text"
             name="phone"
             placeholder="Телефон"
-            value="<?php echo htmlspecialchars($phone ?? ''); ?>"
+            value="<?php echo htmlspecialchars($phone); ?>"
             required
         >
 

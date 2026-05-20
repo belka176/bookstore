@@ -1,13 +1,7 @@
 <?php
 session_start();
 
-$conn = mysqli_connect("localhost", "root", "", "bookstore");
-
-if (!$conn) {
-    die("Ошибка подключения к базе данных: " . mysqli_connect_error());
-}
-
-mysqli_set_charset($conn, "utf8");
+require_once 'config/db.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -16,18 +10,18 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-$sql = "
+$stmt = $pdo->prepare("
     SELECT books.*
     FROM favorites
     JOIN books ON favorites.book_id = books.id
-    WHERE favorites.user_id = '$user_id'
-";
+    WHERE favorites.user_id = :user_id
+");
 
-$result = mysqli_query($conn, $sql);
+$stmt->execute([
+    ':user_id' => $user_id
+]);
 
-if (!$result) {
-    die("Ошибка запроса: " . mysqli_error($conn));
-}
+$favorites = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -66,34 +60,41 @@ if (!$result) {
         </div>
     </section>
 
-    <?php if (mysqli_num_rows($result) > 0): ?>
+    <?php if (count($favorites) > 0): ?>
 
         <section class="books-grid">
 
-            <?php while($book = mysqli_fetch_assoc($result)): ?>
+            <?php foreach ($favorites as $book): ?>
 
                 <div class="book-card">
 
                     <div class="book-image">
-                        <img src="<?php echo $book['image']; ?>" alt="<?php echo $book['title']; ?>">
+                        <img 
+                            src="<?php echo htmlspecialchars($book['image']); ?>" 
+                            alt="<?php echo htmlspecialchars($book['title']); ?>"
+                        >
                     </div>
 
                     <div class="book-info">
 
                         <h3 class="book-title">
-                            <?php echo $book['title']; ?>
+                            <?php echo htmlspecialchars($book['title']); ?>
                         </h3>
 
                         <p class="book-author">
-                            <?php echo $book['author']; ?>
+                            <?php echo htmlspecialchars($book['author']); ?>
                         </p>
 
                         <div class="book-price">
-                            <?php echo $book['price']; ?> ₽
+                            <?php echo htmlspecialchars($book['price']); ?> ₽
                         </div>
 
                         <form action="remove_favorite.php" method="POST">
-                            <input type="hidden" name="book_id" value="<?php echo $book['id']; ?>">
+                            <input 
+                                type="hidden" 
+                                name="book_id" 
+                                value="<?php echo htmlspecialchars($book['id']); ?>"
+                            >
 
                             <button type="submit" class="remove-favorite-btn">
                                 Удалить из избранного
@@ -101,7 +102,11 @@ if (!$result) {
                         </form>
 
                         <form action="add_to_cart.php" method="POST">
-                            <input type="hidden" name="book_id" value="<?php echo $book['id']; ?>">
+                            <input 
+                                type="hidden" 
+                                name="book_id" 
+                                value="<?php echo htmlspecialchars($book['id']); ?>"
+                            >
 
                             <button type="submit" class="add-to-cart">
                                 В корзину
@@ -112,7 +117,7 @@ if (!$result) {
 
                 </div>
 
-            <?php endwhile; ?>
+            <?php endforeach; ?>
 
         </section>
 

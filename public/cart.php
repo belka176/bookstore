@@ -1,13 +1,7 @@
 <?php
 session_start();
 
-$conn = mysqli_connect("localhost", "root", "", "bookstore");
-
-if (!$conn) {
-    die("Ошибка подключения: " . mysqli_connect_error());
-}
-
-mysqli_set_charset($conn, "utf8");
+require_once 'config/db.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -19,36 +13,42 @@ $user_id = $_SESSION['user_id'];
 /* ОБНОВЛЕНИЕ КОЛИЧЕСТВА */
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_quantity'])) {
 
-    $cart_id = intval($_POST['cart_id']);
-    $quantity = intval($_POST['quantity']);
+    $cart_id = (int) $_POST['cart_id'];
+    $quantity = (int) $_POST['quantity'];
 
     if ($quantity < 1) {
         $quantity = 1;
     }
 
-    mysqli_query($conn, "
+    $stmt = $pdo->prepare("
         UPDATE cart
-        SET quantity='$quantity'
-        WHERE id='$cart_id'
-        AND user_id='$user_id'
+        SET quantity = :quantity
+        WHERE id = :cart_id
+        AND user_id = :user_id
     ");
+
+    $stmt->execute([
+        ':quantity' => $quantity,
+        ':cart_id' => $cart_id,
+        ':user_id' => $user_id
+    ]);
 
     header("Location: cart.php");
     exit();
 }
 
-$sql = "
+$stmt = $pdo->prepare("
     SELECT books.*, cart.id AS cart_id, cart.quantity
     FROM cart
     JOIN books ON cart.book_id = books.id
-    WHERE cart.user_id = '$user_id'
-";
+    WHERE cart.user_id = :user_id
+");
 
-$result = mysqli_query($conn, $sql);
+$stmt->execute([
+    ':user_id' => $user_id
+]);
 
-if (!$result) {
-    die("Ошибка запроса: " . mysqli_error($conn));
-}
+$cart_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $total = 0;
 ?>
@@ -91,11 +91,11 @@ $total = 0;
         </div>
     </section>
 
-    <?php if (mysqli_num_rows($result) > 0): ?>
+    <?php if (count($cart_items) > 0): ?>
 
         <div class="cart-list">
 
-            <?php while($item = mysqli_fetch_assoc($result)): ?>
+            <?php foreach ($cart_items as $item): ?>
 
                 <?php
                     $sum = $item['price'] * $item['quantity'];
@@ -104,23 +104,23 @@ $total = 0;
 
                 <div class="cart-item">
 
-                    <img 
-                        src="<?php echo $item['image']; ?>" 
-                        alt="<?php echo $item['title']; ?>"
+                    <img
+                        src="<?php echo htmlspecialchars($item['image']); ?>"
+                        alt="<?php echo htmlspecialchars($item['title']); ?>"
                     >
 
                     <div class="cart-info">
 
                         <h3>
-                            <?php echo $item['title']; ?>
+                            <?php echo htmlspecialchars($item['title']); ?>
                         </h3>
 
                         <p>
-                            <?php echo $item['author']; ?>
+                            <?php echo htmlspecialchars($item['author']); ?>
                         </p>
 
                         <strong>
-                            <?php echo $item['price']; ?> ₽
+                            <?php echo htmlspecialchars($item['price']); ?> ₽
                         </strong>
 
                     </div>
@@ -129,10 +129,10 @@ $total = 0;
 
                         <form method="POST" class="quantity-form">
 
-                            <input 
-                                type="hidden" 
-                                name="cart_id" 
-                                value="<?php echo $item['cart_id']; ?>"
+                            <input
+                                type="hidden"
+                                name="cart_id"
+                                value="<?php echo htmlspecialchars($item['cart_id']); ?>"
                             >
 
                             <label>Количество:</label>
@@ -140,7 +140,7 @@ $total = 0;
                             <input
                                 type="number"
                                 name="quantity"
-                                value="<?php echo $item['quantity']; ?>"
+                                value="<?php echo htmlspecialchars($item['quantity']); ?>"
                                 min="1"
                                 onchange="this.form.submit()"
                             >
@@ -156,17 +156,17 @@ $total = 0;
                     </div>
 
                     <div class="cart-sum">
-                        <?php echo $sum; ?> ₽
+                        <?php echo htmlspecialchars($sum); ?> ₽
                     </div>
 
                     <div class="cart-buttons">
 
                         <form action="checkout.php" method="POST">
 
-                            <input 
-                                type="hidden" 
-                                name="book_id" 
-                                value="<?php echo $item['id']; ?>"
+                            <input
+                                type="hidden"
+                                name="book_id"
+                                value="<?php echo htmlspecialchars($item['id']); ?>"
                             >
 
                             <button type="submit" class="buy-btn">
@@ -177,14 +177,14 @@ $total = 0;
 
                         <form action="remove_cart.php" method="POST">
 
-                            <input 
-                                type="hidden" 
-                                name="cart_id" 
-                                value="<?php echo $item['cart_id']; ?>"
+                            <input
+                                type="hidden"
+                                name="cart_id"
+                                value="<?php echo htmlspecialchars($item['cart_id']); ?>"
                             >
 
-                            <button 
-                                type="submit" 
+                            <button
+                                type="submit"
                                 class="remove-cart-btn"
                             >
                                 Удалить из корзины
@@ -196,7 +196,7 @@ $total = 0;
 
                 </div>
 
-            <?php endwhile; ?>
+            <?php endforeach; ?>
 
         </div>
 
@@ -204,14 +204,14 @@ $total = 0;
 
             <div class="cart-total">
                 <span>Итого:</span>
-                <strong><?php echo $total; ?> ₽</strong>
+                <strong><?php echo htmlspecialchars($total); ?> ₽</strong>
             </div>
 
             <form action="checkout.php" method="POST" class="buy-all-form">
 
-                <input 
-                    type="hidden" 
-                    name="buy_all" 
+                <input
+                    type="hidden"
+                    name="buy_all"
                     value="1"
                 >
 

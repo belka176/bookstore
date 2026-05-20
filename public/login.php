@@ -1,27 +1,28 @@
 <?php
 session_start();
 
-$conn = mysqli_connect("localhost", "root", "", "bookstore");
-
-if (!$conn) {
-    die("Ошибка подключения: " . mysqli_connect_error());
-}
-
-mysqli_set_charset($conn, "utf8");
+require_once 'config/db.php';
 
 $error = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
-    $email = mysqli_real_escape_string($conn, $_POST['email']);
+    $email = $_POST['email'];
     $password = $_POST['password'];
 
-    $query = "SELECT * FROM users WHERE email='$email'";
-    $result = mysqli_query($conn, $query);
+    $stmt = $pdo->prepare("
+        SELECT *
+        FROM users
+        WHERE email = :email
+    ");
 
-    if ($result && mysqli_num_rows($result) > 0) {
+    $stmt->execute([
+        ':email' => $email
+    ]);
 
-        $user = mysqli_fetch_assoc($result);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($user) {
 
         if (
             $password == $user['password'] ||
@@ -35,15 +36,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             exit();
 
         } else {
-
             $error = "Неверный пароль";
-
         }
 
     } else {
-
         $error = "Пользователь не найден";
-
     }
 }
 ?>
@@ -58,11 +55,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 <body>
 
-<?php if(isset($_SESSION['success_register'])): ?>
+<?php if (isset($_SESSION['success_register'])): ?>
 
     <div class="success-message">
         <?php
-            echo $_SESSION['success_register'];
+            echo htmlspecialchars($_SESSION['success_register']);
             unset($_SESSION['success_register']);
         ?>
     </div>
@@ -79,10 +76,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             Добро пожаловать в Книжный мир
         </p>
 
-        <?php if($error): ?>
+        <?php if ($error): ?>
 
             <div class="auth-error">
-                <?php echo $error; ?>
+                <?php echo htmlspecialchars($error); ?>
             </div>
 
         <?php endif; ?>
