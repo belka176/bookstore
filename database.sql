@@ -1,4 +1,6 @@
-CREATE DATABASE bookstore CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE bookstore 
+CHARACTER SET utf8mb4 
+COLLATE utf8mb4_unicode_ci;
 
 USE bookstore;
 
@@ -8,7 +10,10 @@ CREATE TABLE users (
     email VARCHAR(150) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     avatar VARCHAR(255) DEFAULT 'default.png',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    name VARCHAR(100) DEFAULT NULL,
+    phone VARCHAR(50) DEFAULT NULL,
+    role VARCHAR(20) DEFAULT 'user'
 );
 
 CREATE TABLE books (
@@ -17,7 +22,7 @@ CREATE TABLE books (
     author VARCHAR(255) NOT NULL,
     price DECIMAL(10,2) NOT NULL,
     image VARCHAR(255) NOT NULL,
-    category VARCHAR(100)
+    category VARCHAR(100) DEFAULT NULL
 );
 
 CREATE TABLE cart (
@@ -37,11 +42,23 @@ CREATE TABLE favorites (
     FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
 );
 
-CREATE TABLE notifications (
+CREATE TABLE orders (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,
-    message TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_read BOOLEAN DEFAULT FALSE,
+    user_id INT NOT NULL,
+    total_price DECIMAL(10,2) DEFAULT NULL,
+    status VARCHAR(255) DEFAULT NULL,
+    order_date DATETIME DEFAULT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE order_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    book_id INT NOT NULL,
+    title VARCHAR(255) DEFAULT NULL,
+    author VARCHAR(255) DEFAULT NULL,
+    price DECIMAL(10,2) DEFAULT NULL,
+    quantity INT DEFAULT 1,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE SET NULL
 );
