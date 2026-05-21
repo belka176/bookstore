@@ -718,3 +718,33 @@ body {
         padding: 30px 15px;
     }
 }
+
+.favorites-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 25px !important;
+    margin-bottom: 50px !important;
+}
+
+.favorites-grid .book-card {
+    width: 100% !important;
+    min-height: 560px !important;
+}
+
+@media (max-width: 1200px) {
+    .favorites-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+}
+
+@media (max-width: 900px) {
+    .favorites-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+@media (max-width: 560px) {
+    .favorites-grid {
+        grid-template-columns: 1fr !important;
+    }
+}

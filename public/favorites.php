@@ -29,7 +29,7 @@ $favorites = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <head>
     <meta charset="UTF-8">
     <title>Избранное</title>
-    <link rel="stylesheet" href="stylesite.css?v=701">
+    <link rel="stylesheet" href="stylesite.css?v=10001">
 </head>
 
 <body>
@@ -62,7 +62,7 @@ $favorites = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <?php if (count($favorites) > 0): ?>
 
-        <section class="books-grid">
+        <section class="favorites-grid">
 
             <?php foreach ($favorites as $book): ?>
 
