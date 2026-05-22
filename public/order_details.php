@@ -50,39 +50,6 @@ $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <title>Детали заказа</title>
     <link rel="stylesheet" href="stylesite.css?v=2100">
 
-    <style>
-        .order-details-page {
-            max-width: 1200px;
-            margin: 40px auto;
-            padding: 0 20px;
-        }
-
-        .order-details-box {
-            background: #19573a;
-            color: white;
-            padding: 35px;
-            border-radius: 18px;
-        }
-
-        .order-book {
-            background: #f0f6ee;
-            color: #19573a;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 15px;
-        }
-
-        .back-btn {
-            display: inline-block;
-            margin-top: 20px;
-            background: #2a7d5c;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: bold;
-        }
-    </style>
 </head>
 
 <body>

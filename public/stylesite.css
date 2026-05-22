@@ -776,3 +776,416 @@ body {
                 transform: translate(-50%, 0);
             }
         }
+
+                .order-details-page {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .order-details-box {
+            background: #19573a;
+            color: white;
+            padding: 35px;
+            border-radius: 18px;
+        }
+
+        .order-book {
+            background: #f0f6ee;
+            color: #19573a;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+
+        .back-btn {
+            display: inline-block;
+            margin-top: 20px;
+            background: #2a7d5c;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    .profile-page {
+        max-width: 1200px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+
+    .profile-top {
+        display: flex;
+        gap: 40px;
+        background: #19573a;
+        padding: 40px;
+        border-radius: 18px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        margin-bottom: 35px;
+    }
+
+    .avatar-section {
+        width: 260px;
+        flex-shrink: 0;
+    }
+
+    .avatar-box {
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 6px solid #2a7d5c;
+        background: white;
+        box-shadow: 0 0 15px rgba(0,0,0,0.3);
+    }
+
+    .avatar-box img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .default-avatar {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 90px;
+        background: #f0f6ee;
+    }
+
+    .profile-info {
+        flex: 1;
+    }
+
+    .profile-info h2 {
+        color: white;
+        margin-top: 0;
+        margin-bottom: 30px;
+        font-size: 38px;
+    }
+
+    .profile-form {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+    }
+
+    .profile-form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .profile-form-group label {
+        color: #d4e6d4;
+        margin-bottom: 8px;
+        font-weight: bold;
+        font-size: 15px;
+    }
+
+    .profile-form-group input {
+        padding: 14px;
+        border: none;
+        border-radius: 8px;
+        font-size: 15px;
+    }
+
+    .profile-save {
+        grid-column: span 2;
+    }
+
+    .profile-save button {
+        width: 100%;
+        padding: 15px;
+        border: none;
+        border-radius: 8px;
+        background: #2a7d5c;
+        color: white;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    .profile-save button:hover {
+        background: #3a9d7c;
+    }
+
+    .profile-right {
+        background: #19573a;
+        padding: 35px;
+        border-radius: 18px;
+        color: white;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    .profile-right h2 {
+        margin-top: 0;
+        margin-bottom: 25px;
+        font-size: 32px;
+    }
+
+    .order-item {
+        background: #f0f6ee;
+        color: #19573a;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+    }
+
+    .order-item h3 {
+        margin-top: 0;
+    }
+
+    .order-item strong {
+        color: #19573a;
+    }
+
+    .order-books {
+        margin-top: 15px;
+        padding-top: 12px;
+        border-top: 2px solid #d4e6d4;
+    }
+
+    .order-book-row {
+        margin-top: 8px;
+        font-weight: bold;
+    }
+
+    .order-details-btn {
+        display: inline-block;
+        margin-top: 12px;
+        background: #2a7d5c;
+        color: white;
+        padding: 12px 18px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: bold;
+    }
+
+    .order-details-btn:hover {
+        background: #3a9d7c;
+    }
+
+    .empty-orders {
+        background: #f0f6ee;
+        color: #19573a;
+        padding: 25px;
+        border-radius: 12px;
+        font-weight: bold;
+    }
+
+    @media (max-width: 900px) {
+        .profile-top {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .profile-form {
+            grid-template-columns: 1fr;
+        }
+
+        .profile-save {
+            grid-column: span 1;
+        }
+
+        .avatar-section {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+    }
+     .admin-page {
+            max-width: 1400px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .admin-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #19573a;
+            color: white;
+            padding: 25px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .stat-card h3 {
+            margin: 0 0 12px;
+            color: #d4e6d4;
+            font-size: 18px;
+        }
+
+        .stat-card p {
+            margin: 0;
+            font-size: 34px;
+            font-weight: bold;
+        }
+
+        .admin-box {
+            background: #19573a;
+            color: white;
+            padding: 30px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            overflow-x: auto;
+        }
+
+        .admin-box h2 {
+            margin-top: 0;
+        }
+
+        .admin-form {
+            display: grid;
+            grid-template-columns: 1.3fr 1.2fr 120px 160px 1.4fr 120px;
+            gap: 15px;
+            min-width: 1050px;
+        }
+
+        .admin-form input,
+        .admin-form select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            font-size: 15px;
+        }
+
+        .admin-form input[type="file"],
+        .edit-form input[type="file"] {
+            background: white;
+            color: #19573a;
+            cursor: pointer;
+        }
+
+        .admin-form button {
+            background: #2a7d5c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .admin-table {
+            width: 100%;
+            min-width: 1250px;
+            border-collapse: collapse;
+            background: white;
+            color: #19573a;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .stats-table {
+            min-width: 0;
+        }
+
+        .admin-table th,
+        .admin-table td {
+            padding: 14px 12px;
+            border-bottom: 1px solid #ddd;
+            vertical-align: middle;
+        }
+
+        .admin-table th {
+            background: #2a7d5c;
+            color: white;
+        }
+
+        .admin-table th:first-child,
+        .admin-table td:first-child {
+            width: 100px;
+            text-align: center;
+        }
+
+        .admin-table img {
+            width: 60px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+
+        .edit-form {
+            display: grid;
+            grid-template-columns: 220px 220px 110px 150px 220px 120px 120px;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .edit-form input,
+        .edit-form select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+
+        .save-btn {
+            background: #2a7d5c;
+            color: white;
+            border: none;
+            padding: 11px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .delete-btn {
+            display: inline-block;
+            background: #ff6b81;
+            color: white;
+            padding: 11px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        @media (max-width: 900px) {
+            .admin-page {
+                max-width: 100%;
+            }
+
+            .admin-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .admin-form {
+                grid-template-columns: 1fr;
+                min-width: 0;
+            }
+
+            .admin-table {
+                min-width: 0;
+            }
+
+            .admin-table,
+            .admin-table tbody,
+            .admin-table tr,
+            .admin-table td {
+                display: block;
+                width: 100%;
+            }
+
+            .admin-table th {
+                display: none;
+            }
+
+            .admin-table td:first-child {
+                width: 100%;
+                text-align: left;
+            }
+
+            .edit-form {
+                grid-template-columns: 1fr;
+            }
+        }
