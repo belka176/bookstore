@@ -1,13 +1,7 @@
 <?php
 session_start();
 
-$conn = mysqli_connect("localhost", "root", "", "bookstore");
-
-if (!$conn) {
-    die("Ошибка подключения: " . mysqli_connect_error());
-}
-
-mysqli_set_charset($conn, "utf8");
+require_once '../db.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../login.php");
@@ -16,20 +10,28 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-$user_check = mysqli_query($conn, "SELECT * FROM users WHERE id='$user_id'");
-$current_user = mysqli_fetch_assoc($user_check);
+$stmt = $pdo->prepare("
+    SELECT *
+    FROM users
+    WHERE id = :user_id
+");
+
+$stmt->execute([
+    ':user_id' => $user_id
+]);
+
+$current_user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$current_user || $current_user['role'] !== 'admin') {
     die("Доступ запрещён. Эта страница только для администратора.");
 }
 
-/* ДОБАВЛЕНИЕ КНИГИ */
 if (isset($_POST['add_book'])) {
 
-    $title = mysqli_real_escape_string($conn, $_POST['title']);
-    $author = mysqli_real_escape_string($conn, $_POST['author']);
-    $price = mysqli_real_escape_string($conn, $_POST['price']);
-    $category = mysqli_real_escape_string($conn, $_POST['category']);
+    $title = $_POST['title'] ?? '';
+    $author = $_POST['author'] ?? '';
+    $price = $_POST['price'] ?? 0;
+    $category = $_POST['category'] ?? '';
 
     $image = "";
 
@@ -50,38 +52,58 @@ if (isset($_POST['add_book'])) {
         }
     }
 
-    mysqli_query($conn, "
-        INSERT INTO books(title, author, price, category, image)
-        VALUES('$title', '$author', '$price', '$category', '$image')
+    $stmt = $pdo->prepare("
+        INSERT INTO books (title, author, price, category, image)
+        VALUES (:title, :author, :price, :category, :image)
     ");
 
+    $stmt->execute([
+        ':title' => $title,
+        ':author' => $author,
+        ':price' => $price,
+        ':category' => $category,
+        ':image' => $image
+    ]);
+
     header("Location: admin.php");
     exit();
 }
 
-/* УДАЛЕНИЕ КНИГИ */
 if (isset($_GET['delete'])) {
-    $id = intval($_GET['delete']);
 
-    mysqli_query($conn, "DELETE FROM favorites WHERE book_id='$id'");
-    mysqli_query($conn, "DELETE FROM cart WHERE book_id='$id'");
-    mysqli_query($conn, "DELETE FROM books WHERE id='$id'");
+    $id = (int) $_GET['delete'];
+
+    $stmt = $pdo->prepare("DELETE FROM favorites WHERE book_id = :id");
+    $stmt->execute([':id' => $id]);
+
+    $stmt = $pdo->prepare("DELETE FROM cart WHERE book_id = :id");
+    $stmt->execute([':id' => $id]);
+
+    $stmt = $pdo->prepare("DELETE FROM books WHERE id = :id");
+    $stmt->execute([':id' => $id]);
 
     header("Location: admin.php");
     exit();
 }
 
-/* РЕДАКТИРОВАНИЕ КНИГИ */
 if (isset($_POST['edit_book'])) {
 
-    $id = intval($_POST['id']);
+    $id = (int) $_POST['id'];
 
-    $title = mysqli_real_escape_string($conn, $_POST['title']);
-    $author = mysqli_real_escape_string($conn, $_POST['author']);
-    $price = mysqli_real_escape_string($conn, $_POST['price']);
-    $category = mysqli_real_escape_string($conn, $_POST['category']);
+    $title = $_POST['title'] ?? '';
+    $author = $_POST['author'] ?? '';
+    $price = $_POST['price'] ?? 0;
+    $category = $_POST['category'] ?? '';
 
-    $update_image = "";
+    $image_sql = "";
+
+    $params = [
+        ':id' => $id,
+        ':title' => $title,
+        ':author' => $author,
+        ':price' => $price,
+        ':category' => $category
+    ];
 
     if (!empty($_FILES['image_file']['name'])) {
 
@@ -96,42 +118,41 @@ if (isset($_POST['edit_book'])) {
         $db_path = "images/" . $image_name;
 
         if (move_uploaded_file($_FILES['image_file']['tmp_name'], $full_path)) {
-            $update_image = ", image='$db_path'";
+            $image_sql = ", image = :image";
+            $params[':image'] = $db_path;
         }
     }
 
-    mysqli_query($conn, "
-        UPDATE books 
-        SET title='$title',
-            author='$author',
-            price='$price',
-            category='$category'
-            $update_image
-        WHERE id='$id'
+    $stmt = $pdo->prepare("
+        UPDATE books
+        SET 
+            title = :title,
+            author = :author,
+            price = :price,
+            category = :category
+            $image_sql
+        WHERE id = :id
     ");
+
+    $stmt->execute($params);
 
     header("Location: admin.php");
     exit();
 }
 
-/* СТАТИСТИКА */
-$total_orders = mysqli_fetch_assoc(mysqli_query($conn, "
-    SELECT COUNT(*) AS count FROM orders
-"))['count'] ?? 0;
+$stmt = $pdo->query("SELECT COUNT(*) AS count FROM orders");
+$total_orders = $stmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
 
-$total_users = mysqli_fetch_assoc(mysqli_query($conn, "
-    SELECT COUNT(*) AS count FROM users WHERE role='user'
-"))['count'] ?? 0;
+$stmt = $pdo->query("SELECT COUNT(*) AS count FROM users WHERE role = 'user'");
+$total_users = $stmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
 
-$total_sales = mysqli_fetch_assoc(mysqli_query($conn, "
-    SELECT SUM(total_price) AS total FROM orders
-"))['total'] ?? 0;
+$stmt = $pdo->query("SELECT SUM(total_price) AS total FROM orders");
+$total_sales = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
 
-$total_books_sold = mysqli_fetch_assoc(mysqli_query($conn, "
-    SELECT SUM(quantity) AS total FROM order_items
-"))['total'] ?? 0;
+$stmt = $pdo->query("SELECT SUM(quantity) AS total FROM order_items");
+$total_books_sold = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
 
-$popular_books = mysqli_query($conn, "
+$stmt = $pdo->query("
     SELECT title, SUM(quantity) AS sold
     FROM order_items
     GROUP BY title
@@ -139,16 +160,24 @@ $popular_books = mysqli_query($conn, "
     LIMIT 5
 ");
 
-$sold_books = mysqli_query($conn, "
-    SELECT 
-        title,
-        SUM(quantity) AS total_quantity
+$popular_books = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$stmt = $pdo->query("
+    SELECT title, SUM(quantity) AS total_quantity
     FROM order_items
     GROUP BY title
     ORDER BY total_quantity DESC
 ");
 
-$books = mysqli_query($conn, "SELECT * FROM books ORDER BY id DESC");
+$sold_books = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$stmt = $pdo->query("
+    SELECT *
+    FROM books
+    ORDER BY id DESC
+");
+
+$books = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -378,22 +407,22 @@ $books = mysqli_query($conn, "SELECT * FROM books ORDER BY id DESC");
 
         <div class="stat-card">
             <h3>Заказы</h3>
-            <p><?php echo $total_orders ?: 0; ?></p>
+            <p><?php echo htmlspecialchars($total_orders ?: 0); ?></p>
         </div>
 
         <div class="stat-card">
             <h3>Пользователи</h3>
-            <p><?php echo $total_users ?: 0; ?></p>
+            <p><?php echo htmlspecialchars($total_users ?: 0); ?></p>
         </div>
 
         <div class="stat-card">
             <h3>Продажи</h3>
-            <p><?php echo $total_sales ?: 0; ?> ₽</p>
+            <p><?php echo htmlspecialchars($total_sales ?: 0); ?> ₽</p>
         </div>
 
         <div class="stat-card">
             <h3>Продано книг</h3>
-            <p><?php echo $total_books_sold ?: 0; ?></p>
+            <p><?php echo htmlspecialchars($total_books_sold ?: 0); ?></p>
         </div>
 
     </section>
@@ -401,7 +430,7 @@ $books = mysqli_query($conn, "SELECT * FROM books ORDER BY id DESC");
     <section class="admin-box">
         <h2>Топ продаж книг</h2>
 
-        <?php if ($popular_books && mysqli_num_rows($popular_books) > 0): ?>
+        <?php if (count($popular_books) > 0): ?>
 
             <table class="admin-table stats-table">
                 <tr>
@@ -409,12 +438,12 @@ $books = mysqli_query($conn, "SELECT * FROM books ORDER BY id DESC");
                     <th>Продано</th>
                 </tr>
 
-                <?php while($book_stat = mysqli_fetch_assoc($popular_books)): ?>
+                <?php foreach ($popular_books as $book_stat): ?>
                     <tr>
-                        <td><?php echo $book_stat['title']; ?></td>
-                        <td><?php echo $book_stat['sold']; ?> шт.</td>
+                        <td><?php echo htmlspecialchars($book_stat['title']); ?></td>
+                        <td><?php echo htmlspecialchars($book_stat['sold']); ?> шт.</td>
                     </tr>
-                <?php endwhile; ?>
+                <?php endforeach; ?>
             </table>
 
         <?php else: ?>
@@ -428,7 +457,7 @@ $books = mysqli_query($conn, "SELECT * FROM books ORDER BY id DESC");
     <section class="admin-box">
         <h2>Все проданные книги</h2>
 
-        <?php if ($sold_books && mysqli_num_rows($sold_books) > 0): ?>
+        <?php if (count($sold_books) > 0): ?>
 
             <table class="admin-table stats-table">
                 <tr>
@@ -436,14 +465,14 @@ $books = mysqli_query($conn, "SELECT * FROM books ORDER BY id DESC");
                     <th>Всего продано</th>
                 </tr>
 
-                <?php while($sold = mysqli_fetch_assoc($sold_books)): ?>
+                <?php foreach ($sold_books as $sold): ?>
 
                     <tr>
-                        <td><?php echo $sold['title']; ?></td>
-                        <td><?php echo $sold['total_quantity']; ?> шт.</td>
+                        <td><?php echo htmlspecialchars($sold['title']); ?></td>
+                        <td><?php echo htmlspecialchars($sold['total_quantity']); ?> шт.</td>
                     </tr>
 
-                <?php endwhile; ?>
+                <?php endforeach; ?>
 
             </table>
 
@@ -485,25 +514,58 @@ $books = mysqli_query($conn, "SELECT * FROM books ORDER BY id DESC");
                 <th>Действия</th>
             </tr>
 
-            <?php while($book = mysqli_fetch_assoc($books)): ?>
+            <?php foreach ($books as $book): ?>
 
                 <tr>
                     <td>
-                        <img src="../<?php echo $book['image']; ?>" alt="">
+                        <img 
+                            src="../<?php echo htmlspecialchars($book['image']); ?>" 
+                            alt=""
+                        >
                     </td>
 
                     <td>
                         <form method="POST" enctype="multipart/form-data" class="edit-form">
-                            <input type="hidden" name="id" value="<?php echo $book['id']; ?>">
 
-                            <input type="text" name="title" value="<?php echo $book['title']; ?>" required>
-                            <input type="text" name="author" value="<?php echo $book['author']; ?>" required>
-                            <input type="number" name="price" value="<?php echo $book['price']; ?>" required>
+                            <input 
+                                type="hidden" 
+                                name="id" 
+                                value="<?php echo htmlspecialchars($book['id']); ?>"
+                            >
+
+                            <input 
+                                type="text" 
+                                name="title" 
+                                value="<?php echo htmlspecialchars($book['title']); ?>" 
+                                required
+                            >
+
+                            <input 
+                                type="text" 
+                                name="author" 
+                                value="<?php echo htmlspecialchars($book['author']); ?>" 
+                                required
+                            >
+
+                            <input 
+                                type="number" 
+                                name="price" 
+                                value="<?php echo htmlspecialchars($book['price']); ?>" 
+                                required
+                            >
 
                             <select name="category" required>
-                                <option value="popular" <?php if($book['category'] == 'popular') echo 'selected'; ?>>Популярное</option>
-                                <option value="new" <?php if($book['category'] == 'new') echo 'selected'; ?>>Новинки</option>
-                                <option value="exclusive" <?php if($book['category'] == 'exclusive') echo 'selected'; ?>>Эксклюзивно</option>
+                                <option value="popular" <?php if ($book['category'] == 'popular') echo 'selected'; ?>>
+                                    Популярное
+                                </option>
+
+                                <option value="new" <?php if ($book['category'] == 'new') echo 'selected'; ?>>
+                                    Новинки
+                                </option>
+
+                                <option value="exclusive" <?php if ($book['category'] == 'exclusive') echo 'selected'; ?>>
+                                    Эксклюзивно
+                                </option>
                             </select>
 
                             <input type="file" name="image_file" accept="image/*">
@@ -512,18 +574,21 @@ $books = mysqli_query($conn, "SELECT * FROM books ORDER BY id DESC");
                                 Сохранить
                             </button>
 
-                            <a href="admin.php?delete=<?php echo $book['id']; ?>" 
-                               class="delete-btn"
-                               onclick="return confirm('Удалить книгу?');">
+                            <a 
+                                href="admin.php?delete=<?php echo htmlspecialchars($book['id']); ?>" 
+                                class="delete-btn"
+                                onclick="return confirm('Удалить книгу?');"
+                            >
                                 Удалить
                             </a>
+
                         </form>
                     </td>
 
                     <td></td>
                 </tr>
 
-            <?php endwhile; ?>
+            <?php endforeach; ?>
 
         </table>
     </section>
