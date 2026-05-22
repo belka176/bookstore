@@ -10,7 +10,6 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-/* ОБНОВЛЕНИЕ КОЛИЧЕСТВА */
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_quantity'])) {
 
     $cart_id = (int) $_POST['cart_id'];
